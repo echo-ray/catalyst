@@ -9,8 +9,9 @@ from catalyst.exchange.exchange_bundle import ExchangeBundle
 from catalyst.exchange.exchange_errors import (
     ExchangeRequestError,
     PricingDataNotLoadedError)
-from catalyst.exchange.utils.exchange_utils import resample_history_df, group_assets_by_exchange
-from catalyst.exchange.utils.datetime_utils import get_frequency
+from catalyst.exchange.utils.exchange_utils import resample_history_df, \
+    group_assets_by_exchange
+from catalyst.exchange.utils.datetime_utils import get_frequency, get_start_dt
 from logbook import Logger
 from redo import retry
 
@@ -295,7 +296,7 @@ class DataPortalExchangeBacktest(DataPortalExchangeBase):
         bundle = self.exchange_bundles[exchange_name]  # type: ExchangeBundle
 
         freq, candle_size, unit, adj_data_frequency = get_frequency(
-            frequency, data_frequency
+            frequency, data_frequency, supported_freqs=['T', 'D']
         )
         adj_bar_count = candle_size * bar_count
 
@@ -311,7 +312,8 @@ class DataPortalExchangeBacktest(DataPortalExchangeBase):
             algo_end_dt=self._last_available_session,
         )
 
-        df = resample_history_df(pd.DataFrame(series), freq, field)
+        start_dt = get_start_dt(end_dt, adj_bar_count, adj_data_frequency)
+        df = resample_history_df(pd.DataFrame(series), freq, field, start_dt)
         return df
 
     def get_exchange_spot_value(self,
